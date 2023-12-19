@@ -107,12 +107,15 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 }
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
                 Console.BackgroundColor = ConsoleColor.Black;
-                var temp = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
-                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp}"));
-                temp = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
-                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp}"));
-                temp = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
-                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp}"));
+                var temp1 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
+                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp1}"));
+                do
+                {
+                } while (!Task.CompletedTask.IsCompleted);
+                var temp2 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
+                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp2}"));
+                var temp3 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
+                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp3}"));
                 var config = new LoggerConfiguration();
                 logfilename = "DEBUG-" + dtID + "-" + dtName + ".log";
                 config.WriteTo.File(appfolder + Path.DirectorySeparatorChar + logfilename);
@@ -140,6 +143,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("application automation failed when running app (LoginApp) !!!");
                     return;
                 }
+                /*
                 if (!OpenReportParam("sales"))
                 {
                     Console.Beep();
@@ -153,7 +157,44 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Task.Delay(500);
                     Log.Information("Application automation failed when running app (SendingReportParam) !!!");
                     return;
-                } 
+                }
+                if (!OpenReportParam("ar"))
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                    return;
+                }
+                if (!SendingRptParam("ar"))
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("Application automation failed when running app (SendingReportParam) !!!");
+                    return;
+                }
+                if (!OpenReportParam("outlet"))
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                    return;
+                }
+                if (!SendingRptParam("outlet"))
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("Application automation failed when running app (SendingReportParam) !!!");
+                    return;
+                }
+                */
+                if (!ExitiPosApp())
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("Application automation failed when running app (ExitiPosApp) !!!");
+                    return;
+                }
+
             }
             catch (Exception ex)
             {
@@ -281,42 +322,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 checkingele = CheckingEle(ele, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
                 MouseClickaction(ele);
-                Thread.Sleep(10000);
-
-                //automationUIA3 = new UIA3Automation();
-                //window = automationUIA3.GetDesktop();
-                //AutomationElement Parentele2 = null;
-                //AutomationElement[] auEle = window.FindAllChildren (cr => cr.ByControlType(FlaUI.Core.Definitions.ControlType.Pane));
-                //foreach (AutomationElement item in auEle)
-                //{
-                //    if (item.Properties.ProcessId == pid)
-                //    {
-                //        Parentele2 = item;
-                //        break;
-                //    }
-                //}
-                //if (Parentele2 is null)
-                //{
-                //    Log.Information($"[Step #{step += 1}] Quitting, end of login automation function !!");
-                //    return false;
-                //}
-                //Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-
-
-                //ele = Parentele2.FindFirstChild(cr => cr.ByControlType(FlaUI.Core.Definitions.ControlType.List));
-                //checkingele = CheckingEle(ele, step += 1, functionname);
-                //if (checkingele != "") { Log.Information(checkingele); return false; }
-                ////ele.Click();
-                //Thread.Sleep(1000);
-
-                //ele = ele.FindFirstChild(cf => cf.ByName(dbserveraddr));
-                //checkingele = CheckingEle(ele, step += 1, functionname);
-                //if (checkingele != "") { Log.Information(checkingele); return false; }
-                ////ele.AsButton().Focus();
-                ////Thread.Sleep(1000);
-                //MouseClickaction(ele);
-                //Thread.Sleep(2000);
-
 
                 return true;
             }
@@ -334,6 +339,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
 
         private static bool LoginApp()
         {
+            Thread.Sleep(10000);
             var functionname = "LoginApp";
             int step = 0;
             try
@@ -665,13 +671,13 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     return false;
                 }
 
-                
+
                 if (!ClosePreviewWindow())
                 {
                     Log.Information("Application automation failed when running app (ClosePreviewWindow) !!!");
                     return false;
                 }
-                
+
                 //butTutup
                 var closeButtonEle = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butBatal"));
                 checkingele = CheckingEle(closeButtonEle, step += 1, functionname);
@@ -680,7 +686,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 closeButtonEle.AsButton().Click();
                 //MouseClickaction(closeButtonEle);
                 Thread.Sleep(5000);
-                
+
                 return true;
 
             }
@@ -840,14 +846,13 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
         }
         private static bool ClosePreviewWindow()
         {
+            Thread.Sleep(5000);
             var functionname = "ClosePreviewWindow";
             int step = 0;
             var checkingele = "";
             try
             {
                 //* Picking report 'Preview' window,it's a direct child of main os window
-                Thread.Sleep(5000);
-
                 AutomationElement ParentEle;
                 if (window == null || window is null)
                 {
@@ -908,9 +913,92 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
             }
         }
 
+        private static bool ExitiPosApp()
+        {
+            Thread.Sleep(5000);
+            var functionname = "ExitiPosApp";
+            var step = 0;
+            try
+            {
+                //* Picking form iPos 5 main windows
+                automationUIA3 = new UIA3Automation();
+                window = automationUIA3.GetDesktop();
+                var checkingele = "";
+                AutomationElement ParentEle = null;
+                AutomationElement[] MainEle = window.FindAllChildren(cf => cf.ByName("iPos", PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement elem in MainEle)
+                {
+                    //if (!elem.Name.ToLower().Contains(LoginId.ToLower()))
+                    if (elem.Properties.ProcessId != pid)
+                    {
+                        Thread.Sleep(2000);
+                    }
+                    else
+                    {
+                        ParentEle = elem; break;
+                    }
+                }
+                checkingele = CheckingEle(ParentEle, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                //Ribbon Tabs
+                var ele = ParentEle.FindFirstDescendant(cf => cf.ByName("The Ribbon"));
+                checkingele = CheckingEle(ParentEle, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                ParentEle.SetForeground();
 
 
+                //Child Button with no name (from Ribbon Tabs)
+                ele = ele.FindFirstChild(cf => cf.ByControlType(ControlType.Button));
+                checkingele = CheckingEle(ele, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                ele.AsButton().Click();
+                Thread.Sleep(1000);
 
+                //Keluar (from windows desktop)
+                //window = automationUIA3.GetDesktop();
+                ele = window.FindFirstDescendant(cf => cf.ByName("Keluar"));
+                checkingele = CheckingEle(ele, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                if (ele.Properties.ProcessId != pid)
+                {
+                    return false;
+                }
+                ele.SetForeground();
+                ele.Focus();
+                Mouse.MoveTo(ele.GetClickablePoint());
+                MouseClickaction(ele);
+                Thread.Sleep(1000);
+
+                //Element (from windows desktop)
+                //window = automationUIA3.GetDesktop();
+                ParentEle = window.FindFirstChild(cf => cf.ByClassName("#32770"));
+                checkingele = CheckingEle(ParentEle, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                if (ParentEle.Properties.ProcessId != pid)
+                {
+                    return false;
+                }
+                ParentEle.SetForeground();
+
+                //Yes (with element id# 6
+                ele = ParentEle.FindFirstChild(cf => cf.ByName("Yes"));
+                checkingele = CheckingEle(ele, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                ele.AsButton().Focus();
+                Thread.Sleep(1000);
+                ele.AsButton().Click();
+                Thread.Sleep(1000);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Information($"Error when executing {functionname} => {ex.Message}");
+                return false;
+            }
+
+        }
     }
 }
             
