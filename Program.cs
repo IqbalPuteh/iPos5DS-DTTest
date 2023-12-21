@@ -13,6 +13,8 @@ using FlaUI.Core.Definitions;
 using FlaUI.Core.AutomationElements;
 using Serilog;
 using System.Threading;
+using System.Linq;
+using iPos4DS_DTTest;
 
 
 
@@ -143,7 +145,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("application automation failed when running app (LoginApp) !!!");
                     return;
                 }
-                /*
+                
                 if (!OpenReportParam("sales"))
                 {
                     Console.Beep();
@@ -186,7 +188,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application automation failed when running app (SendingReportParam) !!!");
                     return;
                 }
-                */
                 if (!ExitiPosApp())
                 {
                     Console.Beep();
@@ -194,6 +195,8 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application automation failed when running app (ExitiPosApp) !!!");
                     return;
                 }
+                ZipandSend();
+
 
             }
             catch (Exception ex)
@@ -599,14 +602,14 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    ele.AsTextBox().Enter(DateManipul.GetFirstDate());
+                    ele.AsTextBox().Enter(DateManipultor.GetFirstDate());
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipul.GetPrevMonth());
+                    ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipul.GetPrevYear());
+                    ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
@@ -625,15 +628,15 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    ele.AsTextBox().Enter(DateManipul.GetLastDayOfPrevMonth());
+                    ele.AsTextBox().Enter(DateManipultor.GetLastDayOfPrevMonth());
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipul.GetPrevMonth());
+                    ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipul.GetPrevYear());
+                    ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
                     Thread.Sleep(500);
                     Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
                     Thread.Sleep(500);
@@ -662,7 +665,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 checkingele = CheckingEle(ele, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
                 ele.AsButton().Click();
-                //MouseClickaction(ele);
                 Thread.Sleep(5000);
 
                 //calling report save function
@@ -670,7 +672,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 {
                     return false;
                 }
-
 
                 if (!ClosePreviewWindow())
                 {
@@ -684,11 +685,9 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 if (checkingele != "") { Log.Information(checkingele); return false; }
                 ParentEle.SetForeground();
                 closeButtonEle.AsButton().Click();
-                //MouseClickaction(closeButtonEle);
                 Thread.Sleep(5000);
 
                 return true;
-
             }
             catch (Exception ex)
             {
@@ -872,7 +871,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 }
                 checkingele = CheckingEle(ParentEle, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
-
+                ParentEle.SetForeground();
                 //Dock Top
                 var ele = ParentEle.FindFirstChild(cf => cf.ByName("Dock Top"));
                 checkingele = CheckingEle(ele, step += 1, functionname);
@@ -890,6 +889,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 ele = ele.FindFirstChild(cf => cf.ByName("File"));
                 checkingele = CheckingEle(ele, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
+                ele.SetForeground();
                 ele.Focus();
                 MouseClickaction(ele);
                 Thread.Sleep(1000);
@@ -952,6 +952,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 ele = ele.FindFirstChild(cf => cf.ByControlType(ControlType.Button));
                 checkingele = CheckingEle(ele, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
+                ele.AsButton().SetForeground();
                 ele.AsButton().Click();
                 Thread.Sleep(1000);
 
@@ -971,7 +972,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 Thread.Sleep(1000);
 
                 //Element (from windows desktop)
-                //window = automationUIA3.GetDesktop();
                 ParentEle = window.FindFirstChild(cf => cf.ByClassName("#32770"));
                 checkingele = CheckingEle(ParentEle, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
@@ -998,6 +998,68 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 return false;
             }
 
+        }
+
+        static bool ZipandSend()
+        {
+            try
+            {
+                Log.Information("Starting zipping file reports process...");
+                var strDsPeriod = DateManipultor.GetPrevYear() + DateManipultor.GetPrevMonth();
+
+                Log.Information("Moving standart excel reports file to uploaded folder...");
+                // move excels files to Datafolder
+                var path = appfolder + @"\Master_Outlet.xlsx";
+                var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xlsx";
+                File.Move(path, path2, true);
+                path = appfolder + @"\Sales_Data.xlsx";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_SALES.xlsx";
+                File.Move(path, path2, true);
+                path = appfolder + @"\Repayment_Data.xlsx";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_AR.xlsx";
+                File.Move(path, path2, true);
+
+                // set zipping name for files
+                Log.Information("Zipping Transaction file(s)");
+                var strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + ".zip";
+                ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
+
+                // Send the ZIP file to the API server 
+                Log.Information("Sending ZIP file to the API server...");
+                var strStatusCode = "0"; // variable for debugging cUrl test
+                using (cUrlClass myCurlCls = new cUrlClass('Y', issandbox.ToArray().First(), "", sharingfolder + Path.DirectorySeparatorChar + strZipFile))
+                { 
+                    strStatusCode = myCurlCls.SendRequest();
+                    if (strStatusCode == "200")
+                    {
+                        Log.Information("DATA TRANSACTION SHARING - SELESAI");
+                    }
+                    else
+                    {
+                        Log.Information("Failed to send TRANSACTION file to API server... => " + strStatusCode);
+                    }
+                }
+
+                /* Ending logging before sending log file to API server */
+                Log.CloseAndFlush();
+                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] Sending log file to the API server..."));
+                strStatusCode = "0"; // variable for debugging cUrl test
+                using (cUrlClass myCurlCls = new cUrlClass('Y', issandbox.ToArray().First(),"", appfolder + Path.DirectorySeparatorChar + logfilename))
+                {
+                    strStatusCode = myCurlCls.SendRequest();
+                    if (strStatusCode != "200")
+                    {
+                        throw new Exception($"[{DateTime.Now.ToString("HH:mm:ss")} INF] Failed to send LOG file to API server...");
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] Error during ZIP and cUrl send => {ex.Message}"));
+                return false;
+            }
         }
     }
 }
