@@ -16,8 +16,6 @@ using System.Threading;
 using System.Linq;
 using iPos4DS_DTTest;
 
-
-
 namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
 {
     internal class Program
