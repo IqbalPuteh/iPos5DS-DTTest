@@ -16,7 +16,7 @@ using System.Threading;
 using System.Linq;
 using iPos4DS_DTTest;
 
-namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
+namespace iPOSv5_DTTest 
 {
     internal class Program
     {
@@ -39,6 +39,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
         static string iposgudang = ConfigurationManager.AppSettings["namagudangdiipos"].ToUpper();
         static string shortcuttoipos = ConfigurationManager.AppSettings["shortcuttoipos"].ToUpper();
         static string dbname = ConfigurationManager.AppSettings["dbname"];
+        static string getfinancialreport = ConfigurationManager.AppSettings["getfinancialreport"];
         //static string screenshotfolder = appfolder + @"\" + ConfigurationManager.AppSettings["screenshotfolder"];
         static string logfilename = "";
         static int pid = 0;
@@ -109,9 +110,6 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 Console.BackgroundColor = ConsoleColor.Black;
                 var temp1 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
                 Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp1}"));
-                do
-                {
-                } while (!Task.CompletedTask.IsCompleted);
                 var temp2 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
                 Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] {temp2}"));
                 var temp3 = myFileUtil.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
@@ -136,6 +134,8 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("application automation failed when running app (OpenAppAndDBConfig) !!!");
                     return;
                 }
+                Log.Information("Now wait for 1 minute before clicking report...");
+                Thread.Sleep(35000);
                 if (!LoginApp())
                 {
                     Console.Beep();
@@ -143,7 +143,14 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("application automation failed when running app (LoginApp) !!!");
                     return;
                 }
-                
+
+                if (!CloseCheckUpdate("frmUpdateApp"))
+                {
+                    Console.Beep();
+                    Task.Delay(500);
+                    Log.Information("application automation failed when running app (CloseCheckUpdate) !!!");
+                }
+
                 if (!OpenReportParam("sales"))
                 {
                     Console.Beep();
@@ -186,6 +193,51 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application automation failed when running app (SendingReportParam) !!!");
                     return;
                 }
+                if (getfinancialreport == "Y")
+                {
+                    if (!OpenReportParam("labarugi"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                        return;
+                    }
+                    if (!SendingFinRptParam("labarugi"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
+                        return;
+                    }
+                    if (!OpenReportParam("neracasaldo"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                        return;
+                    }
+                    if (!SendingFinRptParam("neracasaldo"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
+                        return;
+                    }
+                    if (!OpenReportParam("nilaistock"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                        return;
+                    }
+                    if (!SendingFinRptParam("nilaistock"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
+                        return;
+                    }
+                }
                 if (!ExitiPosApp())
                 {
                     Console.Beep();
@@ -193,7 +245,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application automation failed when running app (ExitiPosApp) !!!");
                     return;
                 }
-                ZipandSend();
+                //ZipandSend();
 
 
             }
@@ -347,24 +399,27 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
             {
 
                 var checkingele = "";
-                //* Picking form iPos 4 main windows
+                AutomationElement ParentEle = null;
+                //* Picking form iPos 5 main windows
                 automationUIA3 = new UIA3Automation();
                 window = automationUIA3.GetDesktop();
-                AutomationElement ParentEle = null;
                 AutomationElement[] MainEle = window.FindAllChildren(cf => cf.ByName("iPos", PropertyConditionFlags.MatchSubstring));
                 foreach (AutomationElement elem in MainEle)
                 {
+                    //if (!elem.Name.ToLower().Contains(LoginId.ToLower()))
                     if (elem.Properties.ProcessId != pid)
                     {
-                        Thread.Sleep(2000);
+                        Thread.Sleep(500);
                     }
                     else
                     {
                         ParentEle = elem; break;
                     }
                 }
+
                 //* Picking form login main window
                 ParentEle = ParentEle.FindFirstChild(cf => cf.ByAutomationId("frmLogin"));
+
                 checkingele = CheckingEle(ParentEle, step += 1, functionname);
                 if (checkingele != "") { Log.Information(checkingele); return false; }
                 ParentEle.SetForeground();
@@ -384,10 +439,214 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 ele.AsTextBox().Enter(LoginPassword);
                 Thread.Sleep(1000);
 
-                ele = ParentEle.FindFirstChild(cf => cf.ByName("Masuk"));
+                ele = ParentEle.FindFirstDescendant(cf => cf.ByName("Masuk"));
                 ele.AsButton().Focus();
                 Thread.Sleep(1000);
                 return MouseClickaction(ele);
+            }
+            catch (Exception ex)
+            {
+                Log.Information($"Error when executing {functionname} => {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool CloseCheckUpdate(string AutomationID)
+        {
+            var functionname = "CloseCheckUpdate";
+            int step = 0;
+            Thread.Sleep(20000);
+
+            try
+            {
+                AutomationElement ParentEle = null;
+                ParentEle = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByAutomationId(AutomationID)));
+                if (ParentEle is null)
+                {
+                    Log.Information($"[Step {step++}] Failed to close pop-up screen, end of CloseCheckUpdate automation function !!");
+
+                    return false;
+                }
+                Log.Information("Element Interaction on property named -> " + ParentEle.Properties.AutomationId.ToString());
+                Thread.Sleep(1000);
+
+                AutomationElement ele = ParentEle.FindFirstChild(cf => cf.ByAutomationId("butCancel"));
+                ele.AsButton().Click();
+                Thread.Sleep(1000);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Information($"Quitting / Failed when executing {functionname} (Closing update screen pop-up) => {ex.Message}");
+                return false;
+            }
+        }
+
+        static bool SendingFinRptParam(string reportName)
+        {
+            Thread.Sleep(5000);
+            var functionname = "SendingFinRptParam -> " + reportName;
+            int step = 0;
+            try
+            {
+                //* Picking form iPos 5 main windows
+                automationUIA3 = new UIA3Automation();
+                window = automationUIA3.GetDesktop();
+                var checkingele = "";
+                AutomationElement ParentEle = null;
+                AutomationElement[] MainEle = window.FindAllChildren(cf => cf.ByName("iPos", PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement elem in MainEle)
+                {
+                    //if (!elem.Name.ToLower().Contains(LoginId.ToLower()))
+                    if (elem.Properties.ProcessId != pid)
+                    {
+                        Thread.Sleep(2000);
+                    }
+                    else
+                    {
+                        ParentEle = elem; break;
+                    }
+                }
+                checkingele = CheckingEle(ParentEle, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                (var eleName, var imglstrptname) = reportName switch
+                {
+                    "nilaistock" => ("frmPers_Mutasi", "Laporan Mutasi Konversi Item"),
+                    "labarugi" => ("frmAccLabaRugi", ""),
+                    _ => ("frmNS", "")
+                };
+                ParentEle = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId(eleName));
+                checkingele = CheckingEle(ParentEle, step += 1, functionname);
+                if (checkingele != "") { Log.Information(checkingele); return false; }
+                ParentEle.SetForeground();
+                Thread.Sleep(1000);
+
+                AutomationElement ele = null;
+
+                if (reportName != "labarugi")
+                {
+                    if (reportName == "nilaistock")
+                    {
+                        //Fill gudang value in 'cmbGudang2' elements
+                        ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("cmbGudang2"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                        ele = ele.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ele.Focus();
+                        ele.AsTextBox().Enter(iposgudang);
+                        Thread.Sleep(1000);
+
+                        //Fill gudang value in 'cmbGudang1' elements
+                        ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("cmbGudang1"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                        ele = ele.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ele.Focus();
+                        ele.AsTextBox().Enter(iposgudang);
+                        Thread.Sleep(1000);
+                    }
+                    BlockInput(false);
+                    //dtTglDari
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("dtTglDari"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ele.Focus();
+                    sendingdate(ele, "from");
+
+                    //dtTglSampai
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("dtTglSampai"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ele.Focus();
+                    sendingdate(ele, "to");
+                }
+                else
+                {
+                    //Fill in Indonesian Month name in ComboBox 'cBulan'
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("cBulan"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ele.Focus();
+                    var temp = DateManipultor.GetDateIndName(DateManipultor.GetPrevMonth());
+                    ele.AsComboBox().Value = temp;
+                    Thread.Sleep(1000);
+
+                    //Fill in Year value in TextBox 'sTahun'
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("sTahun"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    //ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
+                    ele.AsTextBox().Text = DateManipultor.GetPrevYear();
+
+                }
+
+                if (reportName == "nilaistock")
+                {
+                    //butCetak
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butPreview"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ele.AsButton().Click();
+                    Thread.Sleep(5000);
+
+                    //calling report save function
+                    if (!SavingReport(reportName))
+                    {
+                        return false;
+                    }
+
+                    if (!ClosePreviewWindow())
+                    {
+                        Log.Information("Application automation failed when running app (ClosePreviewWindow) !!!");
+                        return false;
+                    }
+
+                    //butTutup
+                    var closeButtonEle = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butBatal"));
+                    checkingele = CheckingEle(closeButtonEle, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ParentEle.SetForeground();
+                    closeButtonEle.AsButton().Click();
+                    Thread.Sleep(5000);
+                }
+                else
+                {
+                    //butCetak
+                    ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butCetak"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ele.AsButton().Click();
+                    Thread.Sleep(5000);
+
+                    //calling report save function
+                    if (!SavingReport(reportName))
+                    {
+                        return false;
+                    }
+
+                    if (!ClosePreviewWindow())
+                    {
+                        Log.Information("Application automation failed when running app (ClosePreviewWindow) !!!");
+                        return false;
+                    }
+
+                    //butTutup
+                    var closeButtonEle = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butTutup"));
+                    checkingele = CheckingEle(closeButtonEle, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ParentEle.SetForeground();
+                    closeButtonEle.AsButton().Click();
+                    Thread.Sleep(5000);
+                }
+                return true;
             }
             catch (Exception ex)
             {
@@ -414,7 +673,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     //if (!elem.Name.ToLower().Contains(LoginId.ToLower()))
                     if (elem.Properties.ProcessId != pid)
                     {
-                        Thread.Sleep(2000);
+                        Thread.Sleep(500);
                     }
                     else
                     {
@@ -494,7 +753,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     if (checkingele != "") { Log.Information(checkingele); return false; }
                     MouseClickaction(ele);
                 }
-                else
+                else if (reportname == "outlet")
                 {
                     //'Master Data' toolbar
                     ele = ele.FindFirstDescendant(cf => cf.ByName("Master"));
@@ -509,11 +768,72 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     MouseClickaction(ele);
                     Thread.Sleep(1000);
 
-                    //(This is) 'aftar Pelanggan' button
+                    //(This is) 'Daftar Pelanggan' button
                     ele = ele.FindFirstDescendant(cf => cf.ByName("Daftar Pelanggan"));
                     checkingele = CheckingEle(ele, step += 1, functionname);
                     if (checkingele != "") { Log.Information(checkingele); return false; }
                     MouseClickaction(ele);
+                }
+                else if (reportname == "nilaistock")
+                {
+                    //'Persediaan' toolbar
+                    ele = ele.FindFirstDescendant(cf => cf.ByName("Persediaan"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                    //(This is) 'Laporan Persediaan' toolbar
+                    ele = ele.FindFirstDescendant(cf => cf.ByName("Laporan Persediaan"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    ParentEle.SetForeground();
+                    MouseClickaction(ele);
+                    Thread.Sleep(1000);
+
+                    //(This is) 'Laporan Nilai dan Mutasi Item' button
+                    ele = ele.FindFirstDescendant(cf => cf.ByName("Laporan Nilai dan Mutasi Item"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+                    MouseClickaction(ele);
+                }
+                else
+                {
+                    //'Master Data' toolbar
+                    ele = ele.FindFirstDescendant(cf => cf.ByName("Akuntansi"));
+                    checkingele = CheckingEle(ele, step += 1, functionname);
+                    if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                    if (reportname == "labarugi")
+                    {
+                        //(This is) 'Keuangan' toolbar
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Keuangan"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ParentEle.SetForeground();
+                        MouseClickaction(ele);
+                        Thread.Sleep(1000);
+
+                        //(This is) 'Laba Rugi' button
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Laba Rugi"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        MouseClickaction(ele);
+                    }
+                    else if (reportname == "neracasaldo")
+                    {
+                        //(This is) 'Buku Besar' toolbar
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Buku Besar"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ParentEle.SetForeground();
+                        MouseClickaction(ele);
+                        Thread.Sleep(1000);
+
+                        //(This is) 'Neraca Saldo' button
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Neraca Saldo"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        MouseClickaction(ele);
+                    }
                 }
 
                 return true;
@@ -555,7 +875,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
 
                 (var eleName, var imglstrptname) = reportName switch
                 {
-                    "sales" => ("frmLapPenjualan", "Laporan Penjualan Detail"),
+                    "sales" => ("frmLapPenjualan", "Laporan Penjualan Rekap"),
                     "ar" => ("frmLapPiutangBayar", "Laporan Piutang - Pembayaran"),
                     _ => ("frmLapPelanggan", "" /*Not applicable here*/)
                 };
@@ -585,59 +905,20 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                     }
 
                     BlockInput(false);
-
                     //dtTglDari
                     ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("dtTglDari"));
                     checkingele = CheckingEle(ele, step += 1, functionname);
                     if (checkingele != "") { Log.Information(checkingele); return false; }
                     ele.Focus();
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    ele.AsTextBox().Enter(DateManipultor.GetFirstDate());
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
+                    sendingdate(ele ,"from");
 
                     //dtTglSampai
                     ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("dtTglSampai"));
                     checkingele = CheckingEle(ele, step += 1, functionname);
                     if (checkingele != "") { Log.Information(checkingele); return false; }
                     ele.Focus();
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
-                    ele.AsTextBox().Enter(DateManipultor.GetLastDayOfPrevMonth());
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
-                    ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
-                    Thread.Sleep(500);
-                    Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
-                    Thread.Sleep(500);
+                    sendingdate(ele, "to");
+
 #if DEBUG
                     BlockInput(false);
 #else
@@ -693,6 +974,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 return false;
             }
         }
+
         private static bool SavingReport(string reportName)
         {
             Thread.Sleep(5000);
@@ -792,7 +1074,11 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 {
                     "sales" => "Sales_Data",
                     "ar" => "Repayment_Data",
-                    _ => "Master_Outlet"
+                    "outlet" => "Master_Outlet",
+                    "labarugi" => "Laba_Rugi",
+                    "neracasaldo" => "Neraca_Saldo",
+                    "nilaistock" => "Nilai_Stock",
+                    _ => "Arus_Kas"
                 };
 
                 ele1.AsTextBox().Enter($@"{appfolder}\{filename}");
@@ -841,6 +1127,7 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
                 return false;
             }
         }
+
         private static bool ClosePreviewWindow()
         {
             Thread.Sleep(5000);
@@ -998,7 +1285,60 @@ namespace iPOSv5_DTTest // Note: actual namespace depends on the project name.
 
         }
 
-        static bool ZipandSend()
+        private static bool sendingdate(AutomationElement ele, string param)
+        {
+            if (param == "from")
+            {
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                ele.AsTextBox().Enter(DateManipultor.GetFirstDate());
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+                ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+                ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+            }
+            else
+            {
+
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
+                ele.AsTextBox().Enter(DateManipultor.GetLastDayOfPrevMonth());
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+                ele.AsTextBox().Enter(DateManipultor.GetPrevMonth());
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+                ele.AsTextBox().Enter(DateManipultor.GetPrevYear());
+                Thread.Sleep(500);
+                Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT);
+                Thread.Sleep(500);
+            }
+            return true;
+        }
+
+        private static bool ZipandSend()
         {
             try
             {
