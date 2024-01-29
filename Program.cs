@@ -223,6 +223,34 @@ namespace iPOSv5_DTTest
                         Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
                         return;
                     }
+                    if (!OpenReportParam("kasmasuk"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                        return;
+                    }
+                    if (!SendingFinRptParam("kasmasuk"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
+                        return;
+                    }
+                    if (!OpenReportParam("kaskeluar"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (OpenReportParam) !!!");
+                        return;
+                    }
+                    if (!SendingFinRptParam("kaskeluar"))
+                    {
+                        Console.Beep();
+                        Task.Delay(500);
+                        Log.Information("Application automation failed when running app (SendingFinRptParam) !!!");
+                        return;
+                    }
                     if (!OpenReportParam("nilaistock"))
                     {
                         Console.Beep();
@@ -515,6 +543,8 @@ namespace iPOSv5_DTTest
                 {
                     "nilaistock" => ("frmPers_Mutasi", "Laporan Mutasi Konversi Item"),
                     "labarugi" => ("frmAccLabaRugi", ""),
+                    "kasmasuk" => ("frmLapKasIn", "Laporan Kas Masuk"),
+                    "kaskeluar" => ("frmLapKasOut", "Laporan Kas Keluar"),
                     _ => ("frmNS", "")
                 };
                 ParentEle = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId(eleName));
@@ -543,6 +573,20 @@ namespace iPOSv5_DTTest
 
                         //Fill gudang value in 'cmbGudang1' elements
                         ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("cmbGudang1"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+
+                        ele = ele.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ele.Focus();
+                        ele.AsTextBox().Enter(iposgudang);
+                        Thread.Sleep(1000);
+                    } 
+                    else if (reportName == "kasmasuk"  | reportName == "kaskeluar")
+                    {
+                        //Fill gudang value in 'cmbGudang' elements
+                        ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("cGudang"));
                         checkingele = CheckingEle(ele, step += 1, functionname);
                         if (checkingele != "") { Log.Information(checkingele); return false; }
 
@@ -588,7 +632,7 @@ namespace iPOSv5_DTTest
 
                 }
 
-                if (reportName == "nilaistock")
+                if (reportName == "nilaistock" | reportName == "kasmasuk" | reportName == "kaskeluar") 
                 {
                     //butCetak
                     ele = ParentEle.FindFirstDescendant(cf => cf.ByAutomationId("butPreview"));
@@ -834,8 +878,40 @@ namespace iPOSv5_DTTest
                         if (checkingele != "") { Log.Information(checkingele); return false; }
                         MouseClickaction(ele);
                     }
-                }
+                    else if (reportname == "kasmasuk")
+                    {
+                        //(This is) 'Laporan Kas' toolbar
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Laporan Kas"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ParentEle.SetForeground();
+                        MouseClickaction(ele);
+                        Thread.Sleep(1000);
 
+                        //(This is) 'Kas Masuk' button
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Kas Masuk"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        MouseClickaction(ele);
+
+                    }
+                    else if (reportname == "kaskeluar")
+                    {
+                        //(This is) 'Laporan Kas' toolbar
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Laporan Kas"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        ParentEle.SetForeground();
+                        MouseClickaction(ele);
+                        Thread.Sleep(1000);
+
+                        //(This is) 'Kas Keluar' button
+                        ele = ele.FindFirstDescendant(cf => cf.ByName("Kas Keluar"));
+                        checkingele = CheckingEle(ele, step += 1, functionname);
+                        if (checkingele != "") { Log.Information(checkingele); return false; }
+                        MouseClickaction(ele);
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
@@ -1078,7 +1154,9 @@ namespace iPOSv5_DTTest
                     "labarugi" => "Laba_Rugi",
                     "neracasaldo" => "Neraca_Saldo",
                     "nilaistock" => "Nilai_Stock",
-                    _ => "Arus_Kas"
+                    "kasmasuk" => "Cashflow_In",
+                    "kaskeluar" => "Cashflow_Out",
+                    _ => "Undefined_Report"
                 };
 
                 ele1.AsTextBox().Enter($@"{appfolder}\{filename}");
