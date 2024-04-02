@@ -273,7 +273,7 @@ namespace iPOSv5_DTTest
                     Log.Information("Application automation failed when running app (ExitiPosApp) !!!");
                     return;
                 }
-                //ZipandSend();
+                ZipandSend();
 
 
             }
@@ -347,7 +347,7 @@ namespace iPOSv5_DTTest
                     pid = appx.ProcessId;
                     Thread.Sleep(30000);
                 }
-                catch { Log.Information($"[{functionname}] Error ketika mebuka mmnghandle iPos window process..."); return false; }
+                catch { Log.Information($"[{functionname}] Error ketika mebuka menghandle iPos window process..."); return false; }
 
                 //* Picking Koneksi Database main window
                 var checkingele = "";
@@ -701,7 +701,7 @@ namespace iPOSv5_DTTest
 
         private static bool OpenReportParam(string reportname)
         {
-            Thread.Sleep(10000);
+            Thread.Sleep(5000);
             var functionname = "OpenReportParam -> " + reportname;
             int step = 0;
             try
@@ -1390,7 +1390,6 @@ namespace iPOSv5_DTTest
             }
             else
             {
-
                 Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
                 Thread.Sleep(500);
                 Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT);
@@ -1423,7 +1422,7 @@ namespace iPOSv5_DTTest
                 Log.Information("Starting zipping file reports process...");
                 var strDsPeriod = DateManipultor.GetPrevYear() + DateManipultor.GetPrevMonth();
 
-                Log.Information("Moving standart excel reports file to uploaded folder...");
+                Log.Information("Moving financial excel reports file to uploaded folder...");
                 // move excels files to Datafolder
                 var path = appfolder + @"\Master_Outlet.xlsx";
                 var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xlsx";
@@ -1456,6 +1455,47 @@ namespace iPOSv5_DTTest
                     }
                 }
 
+                if (getfinancialreport == "Y")
+                {
+                    Log.Information("Moving standart excel reports file to uploaded folder...");
+                    // move excels files to Datafolder
+                    path = appfolder + @"\Laba_Rugi.xlsx";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_PROFIT_LOSS.xlsx";
+                    File.Move(path, path2, true);
+                    path = appfolder + @"\Neraca_Saldo.xlsx";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_BALANCE.xlsx";
+                    File.Move(path, path2, true);
+                    path = appfolder + @"\Cashflow_In.xlsx";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_CASHFLOW_IN.xlsx";
+                    File.Move(path, path2, true);
+                    path = appfolder + @"\Cashflow_Out.xlsx";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_CASHFLOW_OUT.xlsx";
+                    File.Move(path, path2, true);
+                    path = appfolder + @"\Nilai_Stock.xlsx";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_STOCK.xlsx";
+                    File.Move(path, path2, true);
+
+                    // set zipping name for files
+                    Log.Information("Zipping Financial Transaction file(s)");
+                    strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + "_FINANCIAL"+ ".zip";
+                    ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
+
+                    // Send the financial ZIP  file to the API server 
+                    Log.Information("Sending Financial ZIP file to the API server...");
+                    strStatusCode = "0"; // variable for debugging cUrl test
+                    using (cUrlClass myCurlCls = new cUrlClass('Y', issandbox.ToArray().First(), "", sharingfolder + Path.DirectorySeparatorChar + strZipFile))
+                    {
+                        strStatusCode = myCurlCls.SendRequest();
+                        if (strStatusCode == "200")
+                        {
+                            Log.Information("DATA FINANCIAL SHARING - SELESAI");
+                        }
+                        else
+                        {
+                            Log.Information("Failed to send FINANCIAL file to API server... => " + strStatusCode);
+                        }
+                    }
+                }
                 /* Ending logging before sending log file to API server */
                 Log.CloseAndFlush();
                 Task.Run(() => Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")} INF] Sending log file to the API server..."));
